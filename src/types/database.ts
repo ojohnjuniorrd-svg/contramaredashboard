@@ -14,6 +14,7 @@ export interface DailyMetric {
   campaign_id: string;
   date: string;
   clicks: number;
+  leads: number;
   entradas: number;
   saidas: number;
   investimento: number;

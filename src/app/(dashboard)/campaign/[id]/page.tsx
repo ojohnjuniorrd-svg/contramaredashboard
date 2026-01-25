@@ -146,20 +146,24 @@ export default function CampaignPage({ params }: CampaignPageProps) {
 
 
     // 2. Metrics for Selected Period
+    // 2. Metrics for Selected Period
     const filteredEntradas = filteredMetrics.reduce((sum, m) => sum + m.entradas, 0);
-
+    const filteredLeads = filteredMetrics.reduce((sum, m) => sum + m.leads, 0);
     const filteredInvestment = filteredMetrics.reduce((sum, m) => sum + m.investimento, 0);
     const filteredExits = filteredMetrics.reduce((sum, m) => sum + m.saidas, 0);
 
     // 3. Efficiency Metrics (Period)
-    // CPL Real (Médio) - Assuming CPL is based on Entradas for now since Leads(Meta) is 0
-    // If CPL = Cost Per Lead (Meta), and Lead is 0, then CPL is Infinite?
-    // Let's keep existing ratio but based on Entradas? Or just set to 0 if we don't know what Lead is?
-    // User said "Não mapeie". So if I don't have Leads, I can't calc CPL Real (Meta).
-    // But maybe CPL Real means "Cost Per Entrada"?
-    // I will set them to 0 or safe defaults to avoid "mapping" assumptions.
+    // CPL (Meta Ads) = Investimento / Leads (Meta)
+    const avgCPL = filteredLeads > 0 ? filteredInvestment / filteredLeads : 0;
 
-    const avgExitRate = filteredEntradas > 0 ? (filteredExits / filteredEntradas) * 100 : 0; // Saídas / Entradas is safe
+    // CPL Real (Médio) = Investimento / Entradas
+    const avgRealCPL = filteredEntradas > 0 ? filteredInvestment / filteredEntradas : 0;
+
+    // Taxa de entrada = Entradas / Leads (Meta)
+    const avgEntryRate = filteredLeads > 0 ? (filteredEntradas / filteredLeads) * 100 : 0;
+
+    // Taxa de saída = Saídas / Entradas
+    const avgExitRate = filteredEntradas > 0 ? (filteredExits / filteredEntradas) * 100 : 0;
 
     // Helper formatter
     const formatCurrency = (value: number) => {
@@ -193,7 +197,7 @@ export default function CampaignPage({ params }: CampaignPageProps) {
         <div className="flex-1 flex flex-col overflow-hidden bg-[var(--background)]">
             {/* Header */}
             <header className="bg-[var(--background-card)] border-b border-[var(--border)] px-8 py-4 flex flex-col gap-4">
-                {/* Breadcrumbs */}
+                {/* ... Breadcrumbs and Title (unchanged) ... */}
                 <div className="flex flex-wrap gap-2 items-center">
                     <Link href="/" className="text-[var(--text-secondary)] text-sm font-medium hover:text-[var(--primary)] transition-colors">
                         Dashboards
@@ -213,44 +217,20 @@ export default function CampaignPage({ params }: CampaignPageProps) {
                         </p>
                     </div>
                     <div className="flex items-center gap-3">
-                        {/* Date Filter */}
+                        {/* Date Filter Buttons */}
                         <div className="flex items-center gap-2 bg-[var(--background-card)] border border-[var(--border)] rounded-lg p-1">
-                            <button
-                                onClick={() => setDateRangeOption('last7')}
-                                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${dateRangeOption === 'last7'
-                                    ? 'bg-[var(--primary-light)] text-[var(--primary)]'
-                                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                                    }`}
-                            >
-                                7D
-                            </button>
-                            <button
-                                onClick={() => setDateRangeOption('last30')}
-                                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${dateRangeOption === 'last30'
-                                    ? 'bg-[var(--primary-light)] text-[var(--primary)]'
-                                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                                    }`}
-                            >
-                                30D
-                            </button>
-                            <button
-                                onClick={() => setDateRangeOption('thisMonth')}
-                                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${dateRangeOption === 'thisMonth'
-                                    ? 'bg-[var(--primary-light)] text-[var(--primary)]'
-                                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                                    }`}
-                            >
-                                Mês
-                            </button>
-                            <button
-                                onClick={() => setDateRangeOption('all')}
-                                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${dateRangeOption === 'all'
-                                    ? 'bg-[var(--primary-light)] text-[var(--primary)]'
-                                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                                    }`}
-                            >
-                                Tudo
-                            </button>
+                            {['last7', 'last30', 'thisMonth', 'all'].map((opt) => (
+                                <button
+                                    key={opt}
+                                    onClick={() => setDateRangeOption(opt as any)}
+                                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${dateRangeOption === opt
+                                        ? 'bg-[var(--primary-light)] text-[var(--primary)]'
+                                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                                        }`}
+                                >
+                                    {opt === 'last7' ? '7D' : opt === 'last30' ? '30D' : opt === 'thisMonth' ? 'Mês' : 'Tudo'}
+                                </button>
+                            ))}
                             <div className="h-4 w-px bg-[var(--border)] mx-1" />
                             <button
                                 onClick={() => setDateRangeOption('custom')}
@@ -262,8 +242,7 @@ export default function CampaignPage({ params }: CampaignPageProps) {
                                 Personalizado
                             </button>
                         </div>
-
-                        {/* Custom Date Inputs */}
+                        {/* ... Custom Date Inputs ... */}
                         {dateRangeOption === 'custom' && (
                             <div className="flex items-center gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
                                 <div className="relative flex items-center bg-[var(--background-card)] border border-[var(--border)] rounded-lg px-2 py-1 shadow-sm focus-within:ring-2 focus-within:ring-[var(--primary)] transition-all">
@@ -307,10 +286,10 @@ export default function CampaignPage({ params }: CampaignPageProps) {
 
                     {/* KPI Grid - Row 1: Totals */}
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                        {/* 1. Leads (Meta Ads) - Placeholder */}
+                        {/* 1. Leads (Meta Ads) */}
                         <KpiCard
                             title="Leads (Meta Ads)"
-                            value="0"
+                            value={filteredLeads.toLocaleString('pt-BR')}
                             icon="groups"
                             iconBgColor="bg-indigo-50 dark:bg-indigo-900/20"
                             iconColor="text-indigo-600 dark:text-indigo-400"
@@ -347,16 +326,21 @@ export default function CampaignPage({ params }: CampaignPageProps) {
                         {/* 1. CPL (Meta Ads) */}
                         <KpiCard
                             title="CPL (Meta Ads)"
-                            value={formatCurrency(campaign.cpl_meta ?? 0)}
+                            value={formatCurrency(avgCPL)}
                             icon="flag"
                             iconBgColor="bg-gray-50 dark:bg-gray-800"
                             iconColor="text-gray-600 dark:text-gray-400"
+                            trend={{
+                                value: 0,
+                                label: 'Meta', // Context help
+                                isPositive: true, // simplified
+                            }}
                         />
 
                         {/* 2. CPL Real (Médio) */}
                         <KpiCard
                             title="CPL Real (Médio)"
-                            value={formatCurrency(0)} // Placeholder
+                            value={formatCurrency(avgRealCPL)}
                             icon="monetization_on"
                             iconBgColor="bg-green-50 dark:bg-green-900/20"
                             iconColor="text-green-600 dark:text-green-400"
@@ -365,10 +349,15 @@ export default function CampaignPage({ params }: CampaignPageProps) {
                         {/* 3. Taxa de entrada */}
                         <KpiCard
                             title="Taxa de entrada"
-                            value="0.0%" // Placeholder
+                            value={`${avgEntryRate.toFixed(1)}%`}
                             icon="percent"
                             iconBgColor="bg-orange-50 dark:bg-orange-900/20"
                             iconColor="text-orange-600 dark:text-orange-400"
+                            trend={{
+                                value: 0,
+                                label: 'Entradas / Leads (Meta)',
+                                isPositive: true,
+                            }}
                         />
 
                         {/* 4. Taxa de saída */}
@@ -378,6 +367,11 @@ export default function CampaignPage({ params }: CampaignPageProps) {
                             icon="trending_down"
                             iconBgColor="bg-rose-50 dark:bg-rose-900/20"
                             iconColor="text-rose-600 dark:text-rose-400"
+                            trend={{
+                                value: 0,
+                                label: 'Saídas / Entradas',
+                                isPositive: false,
+                            }}
                         />
                     </div>
 
