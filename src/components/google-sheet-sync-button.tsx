@@ -15,6 +15,41 @@ export function GoogleSheetSyncButton({ campaignId, spreadsheetLink, onSyncCompl
     const [isSyncing, setIsSyncing] = useState(false);
     const supabase = createClient();
 
+    // Proper CSV parser that handles quoted fields (e.g., "254,14")
+    const parseCSVLine = (line: string): string[] => {
+        const result: string[] = [];
+        let current = '';
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"') {
+                inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+                result.push(current.trim());
+                current = '';
+            } else {
+                current += char;
+            }
+        }
+        result.push(current.trim());
+        return result;
+    };
+
+    // Parse Brazilian number format: "254,14" or "1.234,56"
+    const cleanNumber = (val: string): number => {
+        if (!val) return 0;
+        let cleaned = val.replace(/"/g, '').replace('R$', '').replace(/\s/g, '').trim();
+
+        // Brazilian format: comma as decimal, dot as thousands
+        if (cleaned.includes(',')) {
+            cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+        }
+
+        const num = parseFloat(cleaned);
+        return isNaN(num) ? 0 : num;
+    };
+
     const handleSync = async () => {
         if (!spreadsheetLink) {
             toast.error('Nenhum link de planilha configurado');
@@ -27,33 +62,23 @@ export function GoogleSheetSyncButton({ campaignId, spreadsheetLink, onSyncCompl
             let csvUrl = spreadsheetLink;
             if (spreadsheetLink.includes('/edit')) {
                 csvUrl = spreadsheetLink.replace(/\/edit.*$/, '/export?format=csv');
-            } else if (!spreadsheetLink.includes('output=csv') && !spreadsheetLink.includes('format=csv')) {
-                // Try appending if likely a simple ID link, though regex replace above handles most Google Sheets cases
-                // For now assume user provides a valid link or standard browser link
-                // If it ends in / it might need export... safest is regex replace
             }
 
             const response = await fetch(csvUrl);
             if (!response.ok) throw new Error('Falha ao baixar planilha. Verifique se é pública.');
 
             const text = await response.text();
-
-            // Auto-detect separator: Brazilian exports use ; or tabs, international uses ,
             const lines = text.split('\n').filter(line => line.trim());
+
             if (lines.length < 2) throw new Error('Planilha vazia ou formato inválido');
 
-            // Detect separator by checking which one gives us 4 columns
-            let separator = ',';
-            const testLine = lines[0];
-            if (testLine.split('\t').length >= 4) {
-                separator = '\t';
-            } else if (testLine.split(';').length >= 4) {
-                separator = ';';
-            }
+            console.log('Raw first line:', lines[0]);
+            console.log('Raw data line:', lines[1]);
 
-            console.log('Detected separator:', separator === '\t' ? 'TAB' : separator);
+            const rows = lines.map(row => parseCSVLine(row));
 
-            const rows = lines.map(row => row.split(separator));
+            console.log('Parsed headers:', rows[0]);
+            console.log('Parsed data sample:', rows[1]);
 
             // Find Header Index
             const headerRowIndex = rows.findIndex(row =>
@@ -67,28 +92,9 @@ export function GoogleSheetSyncButton({ campaignId, spreadsheetLink, onSyncCompl
             const spentIdx = headers.findIndex(h => h.includes('amount') || h.includes('spent'));
             const leadsIdx = headers.findIndex(h => h.includes('leads'));
 
-            console.log('Headers:', headers);
             console.log('Column indices:', { dayIdx, spentIdx, leadsIdx });
 
             if (dayIdx === -1 || spentIdx === -1) throw new Error('Colunas obrigatórias faltando: Day, Amount Spent');
-
-            // Parse Brazilian number format: "254,14" or "1.234,56"
-            const cleanNumber = (val: string): number => {
-                if (!val) return 0;
-                let cleaned = val
-                    .replace(/"/g, '')
-                    .replace('R$', '')
-                    .replace(/\s/g, '')
-                    .trim();
-
-                // Brazilian format: comma as decimal, dot as thousands
-                if (cleaned.includes(',')) {
-                    cleaned = cleaned.replace(/\./g, '').replace(',', '.');
-                }
-
-                const num = parseFloat(cleaned);
-                return isNaN(num) ? 0 : num;
-            };
 
             const metricsToUpsert = [];
 
@@ -100,6 +106,8 @@ export function GoogleSheetSyncButton({ campaignId, spreadsheetLink, onSyncCompl
                 const investimento = cleanNumber(row[spentIdx]);
                 const leads = leadsIdx !== -1 ? Math.round(cleanNumber(row[leadsIdx])) : 0;
 
+                console.log(`Row ${i}: date=${date}, investimento=${investimento}, leads=${leads}`);
+
                 if (date.match(/^\d{4}-\d{2}-\d{2}$/)) {
                     metricsToUpsert.push({
                         campaign_id: campaignId,
@@ -110,30 +118,14 @@ export function GoogleSheetSyncButton({ campaignId, spreadsheetLink, onSyncCompl
                 }
             }
 
-            console.log('Metrics to upsert:', metricsToUpsert.length);
-            console.log('Sample:', metricsToUpsert.slice(0, 2));
+            console.log('Total metrics to upsert:', metricsToUpsert.length);
 
             if (metricsToUpsert.length === 0) {
                 toast.warning('Nenhum dado válido encontrado.');
                 return;
             }
 
-            // Perform upsert
-            // Note: Upsert needs to know which columns to resolve conflicts on.
-            // If we only insert (investimento, leads), other cols like clicks/entradas might be nullified if we don't merge.
-            // Strategy: We should probably use a specialized upsert or fetch-then-update logic if we want to preserve 'entradas'.
-            // However, straightforward upsert in Supabase overwrites checks primary keys. 
-            // If we only send {investimento, leads}, Supabase might default others if it's a new row, OR update only those if 'ignoreDuplicates' is false?
-            // "onConflict" strategy.
-            // Let's safe-guard: We will UPSERT, but if we want to keep `entradas`/`clicks` we need to know them.
-            // BETTER APPROACH for partial updates:
-            // Since we can't easily do partial upsert for BULK without custom SQL function, 
-            // and we assume this spreadsheet is the SOURCE OF TRUTH for Investment/Leads,
-            // We can loop and upsert. Or better:
-            // 1. Fetch existing metrics for this campaign.
-            // 2. Merge in memory.
-            // 3. Upsert formatted rows.
-
+            // Fetch existing metrics to preserve entradas/saidas/clicks
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const { data: existingMetrics } = await (supabase
                 .from('daily_metrics')
@@ -141,6 +133,7 @@ export function GoogleSheetSyncButton({ campaignId, spreadsheetLink, onSyncCompl
                 .eq('campaign_id', campaignId) as any);
 
             const updates = metricsToUpsert.map(newMetric => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const existing = existingMetrics?.find((m: any) => m.date === newMetric.date);
                 return {
                     campaign_id: campaignId,
@@ -185,4 +178,3 @@ export function GoogleSheetSyncButton({ campaignId, spreadsheetLink, onSyncCompl
         </Button>
     );
 }
-// Refactored: Dashboard & Spreadsheet Sync
