@@ -37,39 +37,68 @@ export function GoogleSheetSyncButton({ campaignId, spreadsheetLink, onSyncCompl
             if (!response.ok) throw new Error('Falha ao baixar planilha. Verifique se é pública.');
 
             const text = await response.text();
-            const rows = text.split('\n').map(row => row.split(','));
+
+            // Auto-detect separator: Brazilian exports use ; or tabs, international uses ,
+            const lines = text.split('\n').filter(line => line.trim());
+            if (lines.length < 2) throw new Error('Planilha vazia ou formato inválido');
+
+            // Detect separator by checking which one gives us 4 columns
+            let separator = ',';
+            const testLine = lines[0];
+            if (testLine.split('\t').length >= 4) {
+                separator = '\t';
+            } else if (testLine.split(';').length >= 4) {
+                separator = ';';
+            }
+
+            console.log('Detected separator:', separator === '\t' ? 'TAB' : separator);
+
+            const rows = lines.map(row => row.split(separator));
 
             // Find Header Index
             const headerRowIndex = rows.findIndex(row =>
-                row.some(cell => cell.toLowerCase().includes('day') || cell.toLowerCase().includes('amount spent'))
+                row.some(cell => cell.toLowerCase().includes('day') || cell.toLowerCase().includes('amount'))
             );
 
             if (headerRowIndex === -1) throw new Error('Colunas não encontradas (Day, Amount Spent, Leads)');
 
             const headers = rows[headerRowIndex].map(h => h.trim().toLowerCase());
-            const dayIdx = headers.findIndex(h => h === 'day');
-            const spentIdx = headers.findIndex(h => h === 'amount spent');
-            const leadsIdx = headers.findIndex(h => h === 'leads');
+            const dayIdx = headers.findIndex(h => h.includes('day'));
+            const spentIdx = headers.findIndex(h => h.includes('amount') || h.includes('spent'));
+            const leadsIdx = headers.findIndex(h => h.includes('leads'));
+
+            console.log('Headers:', headers);
+            console.log('Column indices:', { dayIdx, spentIdx, leadsIdx });
 
             if (dayIdx === -1 || spentIdx === -1) throw new Error('Colunas obrigatórias faltando: Day, Amount Spent');
 
+            // Parse Brazilian number format: "254,14" or "1.234,56"
+            const cleanNumber = (val: string): number => {
+                if (!val) return 0;
+                let cleaned = val
+                    .replace(/"/g, '')
+                    .replace('R$', '')
+                    .replace(/\s/g, '')
+                    .trim();
+
+                // Brazilian format: comma as decimal, dot as thousands
+                if (cleaned.includes(',')) {
+                    cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+                }
+
+                const num = parseFloat(cleaned);
+                return isNaN(num) ? 0 : num;
+            };
+
             const metricsToUpsert = [];
 
-            // Parse valid rows
             for (let i = headerRowIndex + 1; i < rows.length; i++) {
                 const row = rows[i];
-                if (!row[dayIdx]) continue;
+                if (!row[dayIdx] || row[dayIdx].trim() === '') continue;
 
                 const date = row[dayIdx].trim();
-                // Parse "254,14" -> 254.14
-                // Handle different CSV number formats if enclosed in quotes "1.234,56"
-                const cleanNumber = (val: string) => {
-                    if (!val) return 0;
-                    return parseFloat(val.replace(/"/g, '').replace('R$', '').replace('.', '').replace(',', '.').trim());
-                };
-
                 const investimento = cleanNumber(row[spentIdx]);
-                const leads = leadsIdx !== -1 ? cleanNumber(row[leadsIdx]) : 0;
+                const leads = leadsIdx !== -1 ? Math.round(cleanNumber(row[leadsIdx])) : 0;
 
                 if (date.match(/^\d{4}-\d{2}-\d{2}$/)) {
                     metricsToUpsert.push({
@@ -77,13 +106,12 @@ export function GoogleSheetSyncButton({ campaignId, spreadsheetLink, onSyncCompl
                         date: date,
                         investimento: investimento,
                         leads: leads,
-                        // We preserve existing values for these if possible, but upsert overwrites.
-                        // Ideally we fetch existing to merge, or we just rely on updating these specific fields.
-                        // Supabase upsert matches on (campaign_id, date) if unique constraint exists.
-                        // Assuming unique constraint on (campaign_id, date).
                     });
                 }
             }
+
+            console.log('Metrics to upsert:', metricsToUpsert.length);
+            console.log('Sample:', metricsToUpsert.slice(0, 2));
 
             if (metricsToUpsert.length === 0) {
                 toast.warning('Nenhum dado válido encontrado.');
