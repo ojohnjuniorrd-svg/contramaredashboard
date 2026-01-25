@@ -11,6 +11,7 @@ import { DailyMetricsTable } from '@/components/daily-metrics-table';
 import { LeadsChart } from '@/components/leads-chart';
 import { CampaignSettingsDrawer } from '@/components/campaign-settings-drawer';
 import { EditableInvestmentCard } from '@/components/editable-investment-card';
+import { GoogleSheetSyncButton } from '@/components/google-sheet-sync-button';
 import { format, subDays, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -272,6 +273,12 @@ export default function CampaignPage({ params }: CampaignPageProps) {
                                 </div>
                             </div>
                         )}
+
+                        <GoogleSheetSyncButton
+                            campaignId={campaign.id}
+                            spreadsheetLink={campaign.spreadsheet_link}
+                            onSyncComplete={fetchData}
+                        />
 
                         <Button onClick={() => setIsSettingsOpen(true)} variant="secondary">
                             <span className="material-symbols-outlined text-[20px]">edit</span>
