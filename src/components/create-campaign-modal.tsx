@@ -19,10 +19,7 @@ export function CreateCampaignModal({ isOpen, onClose, onSuccess }: CreateCampai
     const [formData, setFormData] = useState({
         sendflow_id: '',
         name: '',
-        leads_meta: '',
-        cpl_meta: '',
-        taxa_entrada_min: '',
-        taxa_saida_max: '',
+        spreadsheet_link: '',
     });
     const supabase = createClient();
 
@@ -41,10 +38,11 @@ export function CreateCampaignModal({ isOpen, onClose, onSuccess }: CreateCampai
                 .insert({
                     id: campaignId,
                     name: formData.name,
-                    leads_meta: parseInt(formData.leads_meta) || 0,
-                    cpl_meta: parseFloat(formData.cpl_meta) || 0,
-                    taxa_entrada_min: parseFloat(formData.taxa_entrada_min) || 0,
-                    taxa_saida_max: parseFloat(formData.taxa_saida_max) || 0,
+                    spreadsheet_link: formData.spreadsheet_link,
+                    leads_meta: 0,
+                    cpl_meta: 0,
+                    taxa_entrada_min: 70, // Default value
+                    taxa_saida_max: 20, // Default value
                 })
                 .select()
                 .single();
@@ -63,10 +61,7 @@ export function CreateCampaignModal({ isOpen, onClose, onSuccess }: CreateCampai
             setFormData({
                 sendflow_id: '',
                 name: '',
-                leads_meta: '',
-                cpl_meta: '',
-                taxa_entrada_min: '',
-                taxa_saida_max: '',
+                spreadsheet_link: '',
             });
         } catch (err) {
             console.error('Error creating campaign:', err);
@@ -103,6 +98,15 @@ export function CreateCampaignModal({ isOpen, onClose, onSuccess }: CreateCampai
                 />
 
                 <Input
+                    label="Link da Planilha"
+                    placeholder="https://docs.google.com/spreadsheets/d/..."
+                    value={formData.spreadsheet_link}
+                    onChange={(e) => setFormData({ ...formData, spreadsheet_link: e.target.value })}
+                    icon="table_view"
+                    hint="Link público ou compartilhado da planilha de dados"
+                />
+
+                <Input
                     label="ID do SendFlow (Release ID)"
                     placeholder="Ex: MOBHjV06fLMKIRJSKyTI"
                     value={formData.sendflow_id}
@@ -116,55 +120,6 @@ export function CreateCampaignModal({ isOpen, onClose, onSuccess }: CreateCampai
                         {error}
                     </p>
                 )}
-
-                <div className="h-px bg-[var(--border-light)] my-2" />
-
-                <div className="space-y-4">
-                    <h3 className="text-sm font-semibold text-[var(--text-primary)]">Metas e Limites</h3>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <Input
-                            label="Meta de Leads"
-                            placeholder="5000"
-                            type="number"
-                            value={formData.leads_meta}
-                            onChange={(e) => setFormData({ ...formData, leads_meta: e.target.value })}
-                            icon="flag"
-                        />
-                        <Input
-                            label="CPL Meta (R$)"
-                            placeholder="5.00"
-                            type="number"
-                            step="0.01"
-                            value={formData.cpl_meta}
-                            onChange={(e) => setFormData({ ...formData, cpl_meta: e.target.value })}
-                            prefix="R$"
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <Input
-                            label="Taxa Entrada Mín (%)"
-                            placeholder="30"
-                            type="number"
-                            step="0.1"
-                            value={formData.taxa_entrada_min}
-                            onChange={(e) => setFormData({ ...formData, taxa_entrada_min: e.target.value })}
-                            suffix="%"
-                            hint="Mínimo esperado de entradas/clicks"
-                        />
-                        <Input
-                            label="Taxa Saída Máx (%)"
-                            placeholder="20"
-                            type="number"
-                            step="0.1"
-                            value={formData.taxa_saida_max}
-                            onChange={(e) => setFormData({ ...formData, taxa_saida_max: e.target.value })}
-                            suffix="%"
-                            hint="Máximo tolerado de saídas/entradas"
-                        />
-                    </div>
-                </div>
             </form>
         </Modal>
     );

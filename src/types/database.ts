@@ -5,6 +5,7 @@ export interface Campaign {
   cpl_meta: number;
   taxa_entrada_min: number;
   taxa_saida_max: number;
+  spreadsheet_link?: string;
   created_at: string;
 }
 

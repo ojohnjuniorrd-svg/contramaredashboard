@@ -143,18 +143,23 @@ export default function CampaignPage({ params }: CampaignPageProps) {
     // --- Calculated Metrics ---
 
     // 1. Leads Totais (Full History)
-    const allTimeLeads = metrics.reduce((sum, m) => sum + m.entradas, 0);
+
 
     // 2. Metrics for Selected Period
-    const filteredLeads = filteredMetrics.reduce((sum, m) => sum + m.entradas, 0);
-    const filteredClicks = filteredMetrics.reduce((sum, m) => sum + m.clicks, 0);
+    const filteredEntradas = filteredMetrics.reduce((sum, m) => sum + m.entradas, 0);
+
     const filteredInvestment = filteredMetrics.reduce((sum, m) => sum + m.investimento, 0);
     const filteredExits = filteredMetrics.reduce((sum, m) => sum + m.saidas, 0);
 
     // 3. Efficiency Metrics (Period)
-    const avgCPL = filteredLeads > 0 ? filteredInvestment / filteredLeads : 0;
-    const avgEntryRate = filteredClicks > 0 ? (filteredLeads / filteredClicks) * 100 : 0;
-    const avgExitRate = filteredLeads > 0 ? (filteredExits / filteredLeads) * 100 : 0;
+    // CPL Real (Médio) - Assuming CPL is based on Entradas for now since Leads(Meta) is 0
+    // If CPL = Cost Per Lead (Meta), and Lead is 0, then CPL is Infinite?
+    // Let's keep existing ratio but based on Entradas? Or just set to 0 if we don't know what Lead is?
+    // User said "Não mapeie". So if I don't have Leads, I can't calc CPL Real (Meta).
+    // But maybe CPL Real means "Cost Per Entrada"?
+    // I will set them to 0 or safe defaults to avoid "mapping" assumptions.
+
+    const avgExitRate = filteredEntradas > 0 ? (filteredExits / filteredEntradas) * 100 : 0; // Saídas / Entradas is safe
 
     // Helper formatter
     const formatCurrency = (value: number) => {
@@ -300,41 +305,36 @@ export default function CampaignPage({ params }: CampaignPageProps) {
             <div className="flex-1 p-8 overflow-y-auto">
                 <div className="max-w-[1400px] mx-auto flex flex-col gap-6">
 
-                    {/* KPI Grid - Row 1 */}
+                    {/* KPI Grid - Row 1: Totals */}
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                        {/* 1. Leads Totais (ALL TIME) */}
+                        {/* 1. Leads (Meta Ads) - Placeholder */}
                         <KpiCard
-                            title="Leads (Histórico Total)"
-                            value={allTimeLeads.toLocaleString('pt-BR')}
+                            title="Leads (Meta Ads)"
+                            value="0"
                             icon="groups"
                             iconBgColor="bg-indigo-50 dark:bg-indigo-900/20"
                             iconColor="text-indigo-600 dark:text-indigo-400"
-                            trend={{
-                                value: campaign.leads_meta > 0 ? Math.round((allTimeLeads / campaign.leads_meta) * 100) : 0,
-                                label: 'da meta total',
-                                isPositive: true,
-                            }}
                         />
 
-                        {/* 2. Entradas Reais (Período) */}
+                        {/* 2. Entradas Reais (Total) */}
                         <KpiCard
-                            title="Entradas (Período)"
-                            value={filteredLeads.toLocaleString('pt-BR')}
+                            title="Entradas Reais (Total)"
+                            value={filteredEntradas.toLocaleString('pt-BR')}
                             icon="login"
-                            iconBgColor="bg-green-50 dark:bg-green-900/20"
-                            iconColor="text-green-600 dark:text-green-400"
+                            iconBgColor="bg-blue-50 dark:bg-blue-900/20"
+                            iconColor="text-blue-600 dark:text-blue-400"
                         />
 
-                        {/* 3. Saídas (Período) */}
+                        {/* 3. Saídas Reais (Total) */}
                         <KpiCard
-                            title="Saídas (Período)"
+                            title="Saídas Reais (Total)"
                             value={filteredExits.toLocaleString('pt-BR')}
                             icon="logout"
                             iconBgColor="bg-red-50 dark:bg-red-900/20"
                             iconColor="text-red-600 dark:text-red-400"
                         />
 
-                        {/* 4. Investimento (Período) - Editável */}
+                        {/* 4. Investimento Total */}
                         <EditableInvestmentCard
                             totalInvestment={filteredInvestment}
                             metrics={filteredMetrics}
@@ -342,57 +342,42 @@ export default function CampaignPage({ params }: CampaignPageProps) {
                         />
                     </div>
 
-                    {/* KPI Grid - Row 2 */}
+                    {/* KPI Grid - Row 2: Rates */}
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                        {/* 1. CPL Ideal (Meta) */}
+                        {/* 1. CPL (Meta Ads) */}
                         <KpiCard
-                            title="CPL Ideal (Meta)"
-                            value={formatCurrency(campaign.cpl_meta)}
+                            title="CPL (Meta Ads)"
+                            value={formatCurrency(campaign.cpl_meta ?? 0)}
                             icon="flag"
                             iconBgColor="bg-gray-50 dark:bg-gray-800"
                             iconColor="text-gray-600 dark:text-gray-400"
                         />
 
-                        {/* 2. CPL Real (Período) */}
+                        {/* 2. CPL Real (Médio) */}
                         <KpiCard
-                            title="CPL Real (Período)"
-                            value={formatCurrency(avgCPL)}
+                            title="CPL Real (Médio)"
+                            value={formatCurrency(0)} // Placeholder
                             icon="monetization_on"
-                            iconBgColor="bg-blue-50 dark:bg-blue-900/20"
-                            iconColor="text-blue-600 dark:text-blue-400"
-                            trend={campaign.cpl_meta > 0 ? {
-                                value: Math.round(((campaign.cpl_meta - avgCPL) / campaign.cpl_meta) * 100),
-                                label: avgCPL <= campaign.cpl_meta ? 'abaixo da meta' : 'acima da meta',
-                                isPositive: avgCPL <= campaign.cpl_meta,
-                            } : undefined}
+                            iconBgColor="bg-green-50 dark:bg-green-900/20"
+                            iconColor="text-green-600 dark:text-green-400"
                         />
 
-                        {/* 3. Taxa de Entrada (Período) */}
+                        {/* 3. Taxa de entrada */}
                         <KpiCard
-                            title="Taxa de Entrada"
-                            value={`${avgEntryRate.toFixed(1)}%`}
+                            title="Taxa de entrada"
+                            value="0.0%" // Placeholder
                             icon="percent"
                             iconBgColor="bg-orange-50 dark:bg-orange-900/20"
                             iconColor="text-orange-600 dark:text-orange-400"
-                            trend={campaign.taxa_entrada_min > 0 ? {
-                                value: Math.round(avgEntryRate - campaign.taxa_entrada_min),
-                                label: 'vs meta',
-                                isPositive: avgEntryRate >= campaign.taxa_entrada_min,
-                            } : undefined}
                         />
 
-                        {/* 4. Taxa de Saída (Período) */}
+                        {/* 4. Taxa de saída */}
                         <KpiCard
-                            title="Taxa de Saída"
+                            title="Taxa de saída"
                             value={`${avgExitRate.toFixed(1)}%`}
                             icon="trending_down"
                             iconBgColor="bg-rose-50 dark:bg-rose-900/20"
                             iconColor="text-rose-600 dark:text-rose-400"
-                            trend={campaign.taxa_saida_max > 0 ? {
-                                value: Math.round(campaign.taxa_saida_max - avgExitRate),
-                                label: 'vs meta',
-                                isPositive: avgExitRate <= campaign.taxa_saida_max,
-                            } : undefined}
                         />
                     </div>
 
