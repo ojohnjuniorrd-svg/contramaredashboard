@@ -128,7 +128,7 @@ export function GoogleSheetSyncButton({ campaignId, spreadsheetLink, onSyncCompl
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const { error } = await (supabase
                 .from('daily_metrics')
-                .upsert(updates, { onConflict: 'campaign_id,date' }) as any);
+                .upsert(updates as any, { onConflict: 'campaign_id,date' }) as any);
 
             if (error) throw error;
 
@@ -157,3 +157,4 @@ export function GoogleSheetSyncButton({ campaignId, spreadsheetLink, onSyncCompl
         </Button>
     );
 }
+// Refactored: Dashboard & Spreadsheet Sync

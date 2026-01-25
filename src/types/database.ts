@@ -73,3 +73,4 @@ export function formatDateBR(dateStr: string): string {
   const date = parseDateString(dateStr);
   return date.toLocaleDateString('pt-BR');
 }
+// Refactored: Dashboard & Spreadsheet Sync
