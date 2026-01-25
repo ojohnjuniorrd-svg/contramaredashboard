@@ -13,6 +13,7 @@ import { CampaignSettingsDrawer } from '@/components/campaign-settings-drawer';
 import { EditableInvestmentCard } from '@/components/editable-investment-card';
 import { format, subDays, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { toast } from 'sonner';
 
 interface CampaignPageProps {
     params: Promise<{ id: string }>;
