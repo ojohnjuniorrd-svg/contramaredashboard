@@ -273,8 +273,8 @@ export default function CampaignPage({ params }: CampaignPageProps) {
                         )}
 
                         <Button onClick={() => setIsSettingsOpen(true)} variant="secondary">
-                            <span className="material-symbols-outlined text-[20px]">tune</span>
-                            <span>Metas</span>
+                            <span className="material-symbols-outlined text-[20px]">edit</span>
+                            <span>Editar</span>
                         </Button>
                     </div>
                 </div>

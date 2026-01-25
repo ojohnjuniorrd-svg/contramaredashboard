@@ -6,6 +6,7 @@ export interface Campaign {
   taxa_entrada_min: number;
   taxa_saida_max: number;
   spreadsheet_link?: string;
+  sendflow_id?: string;
   created_at: string;
 }
 

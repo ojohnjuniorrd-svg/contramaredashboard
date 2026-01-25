@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Drawer } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,12 +17,22 @@ interface CampaignSettingsDrawerProps {
 export function CampaignSettingsDrawer({ isOpen, onClose, campaign, onUpdate }: CampaignSettingsDrawerProps) {
     const [isLoading, setIsLoading] = useState(false);
     const [formData, setFormData] = useState({
-        leads_meta: campaign.leads_meta.toString(),
-        cpl_meta: campaign.cpl_meta.toString(),
-        taxa_entrada_min: campaign.taxa_entrada_min.toString(),
-        taxa_saida_max: campaign.taxa_saida_max.toString(),
+        name: '',
+        spreadsheet_link: '',
+        sendflow_id: '',
     });
     const supabase = createClient();
+
+    // Reset/Initialize form data when campaign changes or drawer opens
+    useEffect(() => {
+        if (isOpen && campaign) {
+            setFormData({
+                name: campaign.name,
+                spreadsheet_link: campaign.spreadsheet_link || '',
+                sendflow_id: campaign.sendflow_id || '',
+            });
+        }
+    }, [isOpen, campaign]);
 
     const handleSubmit = async () => {
         setIsLoading(true);
@@ -32,10 +42,9 @@ export function CampaignSettingsDrawer({ isOpen, onClose, campaign, onUpdate }: 
             const { data, error } = await (supabase
                 .from('campaigns') as any)
                 .update({
-                    leads_meta: parseInt(formData.leads_meta) || 0,
-                    cpl_meta: parseFloat(formData.cpl_meta) || 0,
-                    taxa_entrada_min: parseFloat(formData.taxa_entrada_min) || 0,
-                    taxa_saida_max: parseFloat(formData.taxa_saida_max) || 0,
+                    name: formData.name,
+                    spreadsheet_link: formData.spreadsheet_link,
+                    sendflow_id: formData.sendflow_id,
                 })
                 .eq('id', campaign.id)
                 .select()
@@ -56,8 +65,8 @@ export function CampaignSettingsDrawer({ isOpen, onClose, campaign, onUpdate }: 
         <Drawer
             isOpen={isOpen}
             onClose={onClose}
-            title="Editar Metas"
-            description="Configure os parâmetros de meta do lançamento."
+            title="Editar Campanha"
+            description="Atualize as informações principais da campanha."
             footer={
                 <>
                     <Button variant="secondary" onClick={onClose}>
@@ -71,52 +80,27 @@ export function CampaignSettingsDrawer({ isOpen, onClose, campaign, onUpdate }: 
         >
             <form className="space-y-6">
                 <Input
-                    label="Meta de Leads"
-                    type="number"
-                    value={formData.leads_meta}
-                    onChange={(e) => setFormData({ ...formData, leads_meta: e.target.value })}
-                    icon="flag"
-                    hint="Total de leads esperados para o período."
+                    label="Nome da Campanha"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="Ex: Lançamento Janeiro 2026"
                 />
 
                 <Input
-                    label="CPL Meta (R$)"
-                    type="number"
-                    step="0.01"
-                    value={formData.cpl_meta}
-                    onChange={(e) => setFormData({ ...formData, cpl_meta: e.target.value })}
-                    prefix="R$"
-                    suffix="BRL"
-                    hint="Custo por lead máximo aceitável."
-                />
-
-                <div className="relative py-2">
-                    <div className="absolute inset-0 flex items-center">
-                        <div className="w-full border-t border-[var(--border-light)]" />
-                    </div>
-                    <div className="relative flex justify-center">
-                        <span className="bg-[var(--background-card)] px-2 text-sm text-[var(--text-muted)]">Taxas Limite</span>
-                    </div>
-                </div>
-
-                <Input
-                    label="Taxa de Entrada Mínima (%)"
-                    type="number"
-                    step="0.1"
-                    value={formData.taxa_entrada_min}
-                    onChange={(e) => setFormData({ ...formData, taxa_entrada_min: e.target.value })}
-                    suffix="%"
-                    hint="Mínimo esperado de (entradas/clicks)."
+                    label="Link da Planilha (Dados)"
+                    value={formData.spreadsheet_link}
+                    onChange={(e) => setFormData({ ...formData, spreadsheet_link: e.target.value })}
+                    placeholder="https://docs.google.com/spreadsheets/..."
+                    icon="link"
                 />
 
                 <Input
-                    label="Taxa de Saída Máxima (%)"
-                    type="number"
-                    step="0.1"
-                    value={formData.taxa_saida_max}
-                    onChange={(e) => setFormData({ ...formData, taxa_saida_max: e.target.value })}
-                    suffix="%"
-                    hint="Máximo tolerado de (saídas/entradas)."
+                    label="ID do SendFlow"
+                    value={formData.sendflow_id}
+                    onChange={(e) => setFormData({ ...formData, sendflow_id: e.target.value })}
+                    placeholder="Ex: sf_12345"
+                    icon="code"
+                    hint="Identificador único no sistema SendFlow."
                 />
             </form>
         </Drawer>
