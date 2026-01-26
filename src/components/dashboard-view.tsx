@@ -26,10 +26,11 @@ export function DashboardView({ campaign, metrics, dateRange, readOnly = false }
         return d >= dateRange.start && d <= dateRange.end;
     });
 
-    const filteredEntradas = filteredMetrics.reduce((sum, m) => sum + m.entradas, 0);
-    const filteredLeads = filteredMetrics.reduce((sum, m) => sum + m.leads, 0);
-    const filteredInvestment = filteredMetrics.reduce((sum, m) => sum + m.investimento, 0);
-    const filteredExits = filteredMetrics.reduce((sum, m) => sum + m.saidas, 0);
+    // Garantir conversão de string para number (dados vindos de JSONB podem ser strings)
+    const filteredEntradas = filteredMetrics.reduce((sum, m) => sum + Number(m.entradas || 0), 0);
+    const filteredLeads = filteredMetrics.reduce((sum, m) => sum + Number(m.leads || 0), 0);
+    const filteredInvestment = filteredMetrics.reduce((sum, m) => sum + Number(m.investimento || 0), 0);
+    const filteredExits = filteredMetrics.reduce((sum, m) => sum + Number(m.saidas || 0), 0);
 
     // Calculated
     const avgCPL = filteredLeads > 0 ? filteredInvestment / filteredLeads : 0;
