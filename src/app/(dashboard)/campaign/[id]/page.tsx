@@ -53,7 +53,8 @@ export default function CampaignPage({ params }: CampaignPageProps) {
             return;
         }
 
-        setCampaign(campaignData);
+        const campaign = campaignData as unknown as Campaign;
+        setCampaign(campaign);
 
         // Fetch ALL metrics (limit 365 days for safety)
         // We need to fetch metrics for BOTH the internal campaign ID (spreadsheet sync)
@@ -65,8 +66,8 @@ export default function CampaignPage({ params }: CampaignPageProps) {
             .order('date', { ascending: false })
             .limit(1000); // Increased limit to accommodate potential double rows before merging
 
-        if (campaignData.sendflow_id) {
-            query = query.or(`campaign_id.eq.${id},campaign_id.eq.${campaignData.sendflow_id}`);
+        if (campaign.sendflow_id) {
+            query = query.or(`campaign_id.eq.${id},campaign_id.eq.${campaign.sendflow_id}`);
         } else {
             query = query.eq('campaign_id', id);
         }
