@@ -55,22 +55,62 @@ export default function CampaignPage({ params }: CampaignPageProps) {
 
         setCampaign(campaignData);
 
-        // Fetch ALL metrics (limit 365 days for safety, but effectively all for now)
-        const { data: metricsData, error: metricsError } = await supabase
+        // Fetch ALL metrics (limit 365 days for safety)
+        // We need to fetch metrics for BOTH the internal campaign ID (spreadsheet sync)
+        // AND the external sendflow_id (n8n data) if it exists.
+
+        let query = supabase
             .from('daily_metrics')
             .select('*')
-            .eq('campaign_id', id)
             .order('date', { ascending: false })
-            .limit(365);
+            .limit(1000); // Increased limit to accommodate potential double rows before merging
+
+        if (campaignData.sendflow_id) {
+            query = query.or(`campaign_id.eq.${id},campaign_id.eq.${campaignData.sendflow_id}`);
+        } else {
+            query = query.eq('campaign_id', id);
+        }
+
+        const { data: metricsData, error: metricsError } = await query;
 
         if (!metricsError && metricsData) {
-            setMetrics(metricsData as unknown as DailyMetric[]); // Cast to fix type inference
+            // Merge metrics by date
+            // n8n data uses sendflow_id (Entradas, Saídas, Clicks)
+            // Spreadsheet data uses campaign_id (Investimento, Leads)
+
+            const mergedMetricsMap = new Map<string, DailyMetric>();
+
+            metricsData.forEach((row: any) => {
+                const date = row.date;
+                const existing = mergedMetricsMap.get(date);
+
+                if (existing) {
+                    // Merge values
+                    mergedMetricsMap.set(date, {
+                        ...existing,
+                        // Sum numerical values if they exist in both (unlikely but safe)
+                        // Or prefer non-zero values
+                        investimento: existing.investimento + (row.investimento || 0),
+                        leads: existing.leads + (row.leads || 0),
+                        clicks: existing.clicks + (row.clicks || 0),
+                        entradas: existing.entradas + (row.entradas || 0),
+                        saidas: existing.saidas + (row.saidas || 0),
+                    });
+                } else {
+                    mergedMetricsMap.set(date, { ...row } as DailyMetric);
+                }
+            });
+
+            // Convert back to array
+            const mergedMetrics = Array.from(mergedMetricsMap.values())
+                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+            setMetrics(mergedMetrics);
 
             // Set default custom dates based on available data
-            if (metricsData.length > 0) {
-                // metricsData is sorted desc, so first is newest, last is oldest
-                const newest = (metricsData[0] as DailyMetric).date;
-                const oldest = (metricsData[metricsData.length - 1] as DailyMetric).date;
+            if (mergedMetrics.length > 0) {
+                const newest = mergedMetrics[0].date;
+                const oldest = mergedMetrics[mergedMetrics.length - 1].date;
                 setCustomStartDate(oldest);
                 setCustomEndDate(newest);
             }
