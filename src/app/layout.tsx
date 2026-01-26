@@ -9,8 +9,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Contra Maré - Analytics Dashboard",
-  description: "Dashboard de análise de métricas para lançamentos no WhatsApp",
+  title: "Fluxo Mídia - Analytics",
+  description: "Dashboard de análise de campanhas e lançamentos",
 };
 
 export default function RootLayout({

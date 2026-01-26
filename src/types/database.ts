@@ -7,6 +7,7 @@ export interface Campaign {
   taxa_saida_max: number;
   spreadsheet_link?: string;
   sendflow_id?: string;
+  share_id?: string | null;
   created_at: string;
 }
 
@@ -21,6 +22,13 @@ export interface DailyMetric {
   investimento: number;
   created_at: string;
 }
+
+export interface DateRange {
+  start: Date;
+  end: Date;
+}
+
+export type DateRangeOption = 'today' | 'yesterday' | 'last_7_days' | 'last_30_days' | 'this_month' | 'last_month' | 'custom';
 
 export interface Database {
   public: {

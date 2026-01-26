@@ -1,26 +1,26 @@
 @import "tailwindcss";
 
-/* Design System - Contra Maré Analytics */
+/* Design System - Fluxo Mídia Analytics */
 :root {
   /* Primary Colors */
   --primary: #2b6cee;
   --primary-hover: #1d5bd6;
   --primary-light: rgba(43, 108, 238, 0.1);
-  
+
   /* Background Colors - Light Mode */
   --background: #f6f6f8;
   --background-card: #ffffff;
   --background-hover: #f0f2f4;
-  
+
   /* Border Colors */
   --border: #e5e7eb;
   --border-light: #f0f2f4;
-  
+
   /* Text Colors */
   --text-primary: #111318;
   --text-secondary: #616f89;
   --text-muted: #94a3b8;
-  
+
   /* Status Colors */
   --success: #07883b;
   --success-bg: #dcfce7;
@@ -28,7 +28,7 @@
   --warning-bg: #fef3c7;
   --error: #dc2626;
   --error-bg: #fee2e2;
-  
+
   /* Surface Colors */
   --surface: #ffffff;
   --surface-hover: #f8fafc;
@@ -39,18 +39,18 @@
   --background: #101622;
   --background-card: #1a2234;
   --background-hover: #243048;
-  
+
   --border: #2d3748;
   --border-light: #1e293b;
-  
+
   --text-primary: #ffffff;
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
-  
+
   --success-bg: rgba(7, 136, 59, 0.2);
   --warning-bg: rgba(245, 158, 11, 0.2);
   --error-bg: rgba(220, 38, 38, 0.2);
-  
+
   --surface: #1a2234;
   --surface-hover: #243048;
 }
@@ -74,13 +74,16 @@ body {
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background-color: var(--text-muted);
   border-radius: 20px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: var(--text-secondary);
 }
@@ -89,6 +92,7 @@ body {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -226,13 +230,25 @@ body {
 
 /* Modal Animation */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes scaleIn {
-  from { transform: scale(0.95); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .modal-backdrop {
@@ -306,8 +322,15 @@ body {
 
 /* Animate pulse for active badges */
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .animate-pulse {

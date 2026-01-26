@@ -50,11 +50,13 @@ export default function LoginPage() {
             <div className="w-full max-w-md">
                 {/* Logo */}
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--primary)] to-blue-400 text-white shadow-lg mb-4">
-                        <span className="material-symbols-outlined text-3xl">waves</span>
+                    <div className="flex flex-col items-center gap-2 mb-8">
+                        <div className="p-3 bg-[var(--primary)]/10 rounded-full mb-2">
+                            <span className="material-symbols-outlined text-[var(--primary)] text-3xl">analytics</span>
+                        </div>
+                        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Fluxo Mídia</h1>
+                        <p className="text-[var(--text-secondary)] text-sm">Dashboard Analytics</p>
                     </div>
-                    <h1 className="text-2xl font-bold text-[var(--text-primary)]">Contra Maré</h1>
-                    <p className="text-[var(--text-secondary)] mt-1">Marketing Analytics Dashboard</p>
                 </div>
 
                 {/* Form Card */}

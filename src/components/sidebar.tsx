@@ -25,13 +25,14 @@ export function Sidebar({ userName = 'Usuário', userEmail = 'user@email.com', o
         <aside className="w-64 bg-[var(--background-card)] border-r border-[var(--border)] flex flex-col h-full shrink-0">
             {/* Branding */}
             <div className="p-4 border-b border-[var(--border-light)]">
-                <div className="flex gap-3 items-center">
-                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[var(--primary)] to-blue-400 flex items-center justify-center text-white shadow-lg">
-                        <span className="material-symbols-outlined">waves</span>
+                {/* Logo */}
+                <div className="p-6 flex items-center gap-3">
+                    <div className="h-8 w-8 bg-[var(--primary)] rounded-lg flex items-center justify-center">
+                        <span className="material-symbols-outlined text-white text-[20px]">analytics</span>
                     </div>
-                    <div className="flex flex-col overflow-hidden">
-                        <h1 className="text-[var(--text-primary)] text-base font-semibold leading-tight truncate">Contra Maré</h1>
-                        <p className="text-[var(--text-secondary)] text-xs font-normal leading-normal truncate">Marketing Analytics</p>
+                    <div>
+                        <h1 className="font-bold text-[var(--text-primary)] leading-tight">Fluxo Mídia</h1>
+                        <p className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider font-medium">ANALYTICS</p>
                     </div>
                 </div>
             </div>

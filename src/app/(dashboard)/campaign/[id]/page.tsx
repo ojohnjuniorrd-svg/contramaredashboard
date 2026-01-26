@@ -12,6 +12,7 @@ import { LeadsChart } from '@/components/leads-chart';
 import { CampaignSettingsDrawer } from '@/components/campaign-settings-drawer';
 import { EditableInvestmentCard } from '@/components/editable-investment-card';
 import { GoogleSheetSyncButton } from '@/components/google-sheet-sync-button';
+import { ShareCampaignButton } from '@/components/share-campaign-button';
 import { format, subDays, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -340,6 +341,10 @@ export default function CampaignPage({ params }: CampaignPageProps) {
                             </div>
                         )}
 
+                        <ShareCampaignButton
+                            campaign={campaign}
+                            onUpdate={setCampaign}
+                        />
                         <GoogleSheetSyncButton
                             campaignId={campaign.id}
                             spreadsheetLink={campaign.spreadsheet_link}

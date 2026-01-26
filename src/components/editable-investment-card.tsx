@@ -8,10 +8,11 @@ import { DailyMetric, formatDateBR } from '@/types/database';
 interface EditableInvestmentCardProps {
     totalInvestment: number;
     metrics: DailyMetric[];
-    onUpdate: (updatedMetric: DailyMetric) => void;
+    onUpdate?: (updatedMetric: DailyMetric) => void;
+    readOnly?: boolean;
 }
 
-export function EditableInvestmentCard({ totalInvestment, metrics, onUpdate }: EditableInvestmentCardProps) {
+export function EditableInvestmentCard({ totalInvestment, metrics, onUpdate, readOnly = false }: EditableInvestmentCardProps) {
     const [isEditing, setIsEditing] = useState(false);
     const [editValue, setEditValue] = useState('');
     const [selectedDate, setSelectedDate] = useState('');
@@ -54,7 +55,7 @@ export function EditableInvestmentCard({ totalInvestment, metrics, onUpdate }: E
             .single();
 
         if (!error && data) {
-            onUpdate(data as DailyMetric);
+            onUpdate?.(data as DailyMetric);
         }
 
         setIsSaving(false);
@@ -115,27 +116,35 @@ export function EditableInvestmentCard({ totalInvestment, metrics, onUpdate }: E
                             </div>
                         </div>
                     ) : (
-                        <button
-                            onClick={handleStartEdit}
-                            className="group flex items-center gap-2 mt-1"
-                            disabled={metrics.length === 0}
-                        >
-                            <h3 className="text-[var(--text-primary)] text-2xl font-bold group-hover:text-[var(--primary)] transition-colors">
-                                {formatCurrency(totalInvestment)}
-                            </h3>
-                            {metrics.length > 0 && (
-                                <span className="material-symbols-outlined text-[18px] text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-opacity">
-                                    edit
-                                </span>
+                        <div className="group flex items-center gap-2 mt-1">
+                            {readOnly ? (
+                                <h3 className="text-[var(--text-primary)] text-2xl font-bold">
+                                    {formatCurrency(totalInvestment)}
+                                </h3>
+                            ) : (
+                                <button
+                                    onClick={handleStartEdit}
+                                    className="flex items-center gap-2 group-hover:text-[var(--primary)] transition-colors"
+                                    disabled={metrics.length === 0}
+                                >
+                                    <h3 className="text-[var(--text-primary)] text-2xl font-bold">
+                                        {formatCurrency(totalInvestment)}
+                                    </h3>
+                                    {metrics.length > 0 && (
+                                        <span className="material-symbols-outlined text-[18px] text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-opacity">
+                                            edit
+                                        </span>
+                                    )}
+                                </button>
                             )}
-                        </button>
+                        </div>
                     )}
                 </div>
                 <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-900/20">
                     <span className="material-symbols-outlined text-purple-600 dark:text-purple-400 text-[20px]">payments</span>
                 </div>
             </div>
-            {!isEditing && metrics.length > 0 && (
+            {!isEditing && !readOnly && metrics.length > 0 && (
                 <p className="text-xs text-[var(--text-muted)]">
                     Clique para editar por dia
                 </p>

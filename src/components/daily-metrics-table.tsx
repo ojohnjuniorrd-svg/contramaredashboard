@@ -9,12 +9,13 @@ import { ptBR } from 'date-fns/locale';
 interface DailyMetricsTableProps {
     metrics: DailyMetric[];
     campaign: Campaign;
-    onMetricUpdate: (updatedMetric: DailyMetric) => void;
+    onMetricUpdate?: (updatedMetric: DailyMetric) => void;
+    readOnly?: boolean;
 }
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
-export function DailyMetricsTable({ metrics, campaign, onMetricUpdate }: DailyMetricsTableProps) {
+export function DailyMetricsTable({ metrics, campaign, onMetricUpdate, readOnly = false }: DailyMetricsTableProps) {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editValue, setEditValue] = useState('');
     const [saveStatus, setSaveStatus] = useState<Record<string, SaveStatus>>({});
@@ -52,7 +53,7 @@ export function DailyMetricsTable({ metrics, campaign, onMetricUpdate }: DailyMe
             if (error) throw error;
 
             if (data) {
-                onMetricUpdate(data as DailyMetric);
+                onMetricUpdate?.(data as DailyMetric);
             }
 
             // Show saved status
