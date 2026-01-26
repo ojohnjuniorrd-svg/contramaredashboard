@@ -56,15 +56,25 @@ export async function syncSpreadsheetData(
     const spentIdx = headers.findIndex(h => h.includes('amount') || h.includes('spent'));
     const leadsIdx = headers.findIndex(h => h.includes('leads'));
 
+    // Check for Entradas/Saídas columns (pt-BR or English)
+    const entriesIdx = headers.findIndex(h => h.includes('entradas') || h.includes('entries') || h.includes('entrada'));
+    const exitsIdx = headers.findIndex(h => h.includes('saidas') || h.includes('exits') || h.includes('saídas') || h.includes('saida'));
+
     if (dayIdx === -1 || spentIdx === -1) throw new Error('Colunas obrigatórias faltando: Day, Amount Spent');
 
     // 6. Clean Number Helper
     const cleanNumber = (val: string): number => {
         if (!val) return 0;
         let cleaned = val.replace(/"/g, '').replace('R$', '').replace(/\s/g, '').trim();
-        if (cleaned.includes(',')) {
+        if (cleaned.includes(',') && !cleaned.includes('.')) {
+            // 1000,00 -> 1000.00
+            cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+        } else if (cleaned.includes(',') && cleaned.includes('.')) {
+            // 1.000,00 -> 1000.00 (Brazilian format)
+            // Remove dots, replce comma
             cleaned = cleaned.replace(/\./g, '').replace(',', '.');
         }
+
         const num = parseFloat(cleaned);
         return isNaN(num) ? 0 : num;
     };
@@ -78,6 +88,8 @@ export async function syncSpreadsheetData(
         const date = row[dayIdx].trim();
         const investimento = cleanNumber(row[spentIdx]);
         const leads = leadsIdx !== -1 ? Math.round(cleanNumber(row[leadsIdx])) : 0;
+        const entradas = entriesIdx !== -1 ? Math.round(cleanNumber(row[entriesIdx])) : 0;
+        const saidas = exitsIdx !== -1 ? Math.round(cleanNumber(row[exitsIdx])) : 0;
 
         if (date.match(/^\d{4}-\d{2}-\d{2}$/)) {
             metricsToUpsert.push({
@@ -85,6 +97,8 @@ export async function syncSpreadsheetData(
                 date: date,
                 investimento: investimento,
                 leads: leads,
+                entradas: entradas,
+                saidas: saidas,
             });
         }
     }
@@ -103,14 +117,27 @@ export async function syncSpreadsheetData(
     const updates = metricsToUpsert.map(newMetric => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const existing = existingMetrics?.find((m: any) => m.date === newMetric.date);
+
+        // If csv has 0 for entries/exits, check if we should keep existing db value?
+        // Usually sync means overwrite. But if column didn't exist in CSV, we set it to 0 in parser above.
+        // Let's rely on parser: if column was NOT found, entriesIdx is -1, so parser returns 0.
+        // We might want to preserve DB value if CSV didn't have the column at all.
+        // But here we are iterating `metricsToUpsert` which has 0s.
+
+        // Improved logic: If column was missing in CSV, we might want to keep existing.
+        // But for simplicity and clean sync, let's trust the parsed object.
+        // Actually, if we want to support partial updates (e.g. n8n fills entries, CSV fills investment), 
+        // we need to be careful. 
+        // The user asked to sync "from spreadsheet". It implies spreadsheet is master for what it contains.
+
         return {
             campaign_id: campaignId,
             date: newMetric.date,
             investimento: newMetric.investimento,
             leads: newMetric.leads,
             clicks: existing?.clicks || 0,
-            entradas: existing?.entradas || 0,
-            saidas: existing?.saidas || 0,
+            entradas: newMetric.entradas > 0 ? newMetric.entradas : (existing?.entradas || 0), // Prefer CSV if > 0, else keep existing
+            saidas: newMetric.saidas > 0 ? newMetric.saidas : (existing?.saidas || 0),       // Prefer CSV if > 0, else keep existing
         };
     });
 
