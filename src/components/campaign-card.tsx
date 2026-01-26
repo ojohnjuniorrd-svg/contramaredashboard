@@ -102,7 +102,8 @@ export function CampaignCard({ campaign, metrics = [], onEdit, onDelete }: Campa
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     // Calculate real totals from metrics
-    const totalLeads = metrics.reduce((sum, m) => sum + m.entradas, 0);
+    // Use leads_meta from DB if available (source of truth), otherwise fallback to metrics sum
+    const totalLeads = campaign.leads_meta || metrics.reduce((sum, m) => sum + m.entradas, 0);
 
     // Calculate trend (compare last 3 days vs previous 3 days)
     const sortedMetrics = [...metrics].sort((a, b) =>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, use, useMemo } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
@@ -15,6 +15,7 @@ import { GoogleSheetSyncButton } from '@/components/google-sheet-sync-button';
 import { format, subDays, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { syncSpreadsheetData } from '@/lib/sync-helpers';
 
 interface CampaignPageProps {
     params: Promise<{ id: string }>;
@@ -182,6 +183,30 @@ export default function CampaignPage({ params }: CampaignPageProps) {
             });
         });
     }, [metrics, dateRange, dateRangeOption]);
+
+    // --- Auto-Sync Logic ---
+    const hasSynced = useRef(false);
+
+    useEffect(() => {
+        const autoSync = async () => {
+            if (campaign && campaign.spreadsheet_link && !hasSynced.current) {
+                hasSynced.current = true; // Prevent double sync in StrictMode
+                try {
+                    console.log('Auto-syncing spreadsheet...');
+                    await syncSpreadsheetData(supabase, campaign.id, campaign.spreadsheet_link);
+                    console.log('Auto-sync complete');
+                    fetchData(); // Refresh metrics after sync
+                } catch (error) {
+                    console.error('Auto-sync failed:', error);
+                    // Optional: toast.error('Falha na sincronização automática');
+                }
+            }
+        };
+
+        if (campaign) {
+            autoSync();
+        }
+    }, [campaign]);
 
     // --- Calculated Metrics ---
 
@@ -379,11 +404,6 @@ export default function CampaignPage({ params }: CampaignPageProps) {
                             icon="flag"
                             iconBgColor="bg-gray-50 dark:bg-gray-800"
                             iconColor="text-gray-600 dark:text-gray-400"
-                            trend={{
-                                value: 0,
-                                label: 'Meta', // Context help
-                                isPositive: true, // simplified
-                            }}
                         />
 
                         {/* 2. CPL Real (Médio) */}
@@ -402,11 +422,6 @@ export default function CampaignPage({ params }: CampaignPageProps) {
                             icon="percent"
                             iconBgColor="bg-orange-50 dark:bg-orange-900/20"
                             iconColor="text-orange-600 dark:text-orange-400"
-                            trend={{
-                                value: 0,
-                                label: 'Entradas / Leads (Meta)',
-                                isPositive: true,
-                            }}
                         />
 
                         {/* 4. Taxa de saída */}
@@ -416,11 +431,6 @@ export default function CampaignPage({ params }: CampaignPageProps) {
                             icon="trending_down"
                             iconBgColor="bg-rose-50 dark:bg-rose-900/20"
                             iconColor="text-rose-600 dark:text-rose-400"
-                            trend={{
-                                value: 0,
-                                label: 'Saídas / Entradas',
-                                isPositive: false,
-                            }}
                         />
                     </div>
 
